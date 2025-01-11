@@ -9,7 +9,6 @@ class TikTokDownloader:
         else:
             self.output_dir = "downloads"
         
-        # Create downloads directory if it doesn't exist
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
@@ -69,6 +68,7 @@ class TikTokDownloader:
                     'quality': 'MP3 Audio',
                     'is_audio': True
                 })
+
                 
                 return final_formats
                 
@@ -82,14 +82,16 @@ class TikTokDownloader:
                 # Generate filename
                 is_audio = selected_format.get('is_audio', False)
                 ext = 'mp3' if is_audio else 'mp4'
-                filename = f"tiktok_{int(time.time())}.{ext}"
+                timestamp = int(time.time())
+                filename = f"tiktok_{timestamp}.{ext}"
                 filepath = os.path.join(self.output_dir, filename)
                 
                 # Configure download options
                 if is_audio:
                     ydl_opts = {
                         'format': 'bestaudio/best',
-                        'outtmpl': filepath,
+                        'outtmpl': filepath,  # Use the full filepath with extension
+                        'ffmpeg_location': r'C:\ffmpeg\bin\ffmpeg.exe',
                         'postprocessors': [{
                             'key': 'FFmpegExtractAudio',
                             'preferredcodec': 'mp3',
@@ -102,6 +104,7 @@ class TikTokDownloader:
                     ydl_opts = {
                         'format': selected_format['format_id'],
                         'outtmpl': filepath,
+                        'ffmpeg_location': r'C:\ffmpeg\bin\ffmpeg.exe',
                         'merge_output_format': 'mp4',
                     }
 
@@ -109,32 +112,22 @@ class TikTokDownloader:
                 
                 # Download the file
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    error_code = ydl.download([url])
-                    print(f"Download completed with code: {error_code}")
+                    ydl.download([url])
 
-                # For audio downloads, the final file will have .mp3 extension
-                if is_audio:
-                    mp3_path = filepath.rsplit('.', 1)[0] + '.mp3'
-                    if os.path.exists(mp3_path):
-                        print(f"Audio file found at: {mp3_path}")
-                        return mp3_path
-                    else:
-                        print(f"Audio file not found at: {mp3_path}")
+                # Check if file exists (both for audio and video)
+                if os.path.exists(filepath):
+                    print(f"File found at: {filepath}")
+                    return filepath
                 else:
-                    if os.path.exists(filepath):
-                        print(f"Video file found at: {filepath}")
-                        return filepath
-                    else:
-                        print(f"Video file not found at: {filepath}")
-
-                return False
+                    print(f"File not found at: {filepath}")
+                    return False
 
             return False
             
         except Exception as e:
             print(f"Error downloading: {str(e)}")
             import traceback
-            traceback.print_exc()  # Print full error traceback
+            traceback.print_exc()
             return False 
 
     def get_video_metadata(self, url):
@@ -153,4 +146,4 @@ class TikTokDownloader:
                 }
         except Exception as e:
             print(f"Error getting video metadata: {str(e)}")
-            return {} 
+            return {}

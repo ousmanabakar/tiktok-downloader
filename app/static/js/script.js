@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const status = document.getElementById('status');
     
     let selectedQuality = null;
+    let selectedFormat = null;
 
     checkButton.addEventListener('click', async () => {
         const url = videoUrlInput.value.trim();
@@ -55,6 +56,9 @@ document.addEventListener('DOMContentLoaded', function() {
         formats.forEach((format, index) => {
             const option = document.createElement('div');
             option.className = 'option-item';
+            if (format.is_audio) {
+                option.classList.add('audio');
+            }
             
             const icon = format.is_audio ? 'fa-music' : 'fa-video';
             const text = format.is_audio ? 
@@ -72,7 +76,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 option.classList.add('selected');
                 selectedQuality = index;
+                selectedFormat = format;
                 downloadButton.disabled = false;
+                
+                // Update download button text based on format
+                const buttonText = downloadButton.querySelector('.button-text');
+                buttonText.innerHTML = format.is_audio ? 
+                    '<i class="fas fa-music"></i> Download MP3' : 
+                    '<i class="fas fa-video"></i> Download Video';
             });
             
             optionsContainer.appendChild(option);
@@ -87,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = videoUrlInput.value.trim();
         status.textContent = 'Downloading...';
         downloadButton.disabled = true;
+        toggleLoader(true);
         
         try {
             const response = await fetch('/download', {
@@ -104,14 +116,36 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success) {
                 status.textContent = 'Download completed!';
-                window.location.href = data.download_url;
+                
+                // Create a download link with suggested filename
+                const ext = selectedFormat.is_audio ? 'mp3' : 'mp4';
+                const timestamp = new Date().getTime();
+                const suggestedName = `tiktok_${timestamp}.${ext}`;
+                
+                const link = document.createElement('a');
+                link.href = data.download_url;
+                link.download = suggestedName;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             } else {
                 status.textContent = data.error || 'Download failed';
             }
         } catch (error) {
             status.textContent = 'Error downloading';
+            console.error('Download error:', error);
         } finally {
             downloadButton.disabled = false;
+            toggleLoader(false);
         }
     });
+
+    function toggleLoader(show) {
+        const buttonText = downloadButton.querySelector('.button-text');
+        const loader = downloadButton.querySelector('.loader');
+        
+        buttonText.style.display = show ? 'none' : 'block';
+        loader.style.display = show ? 'block' : 'none';
+    }
 });
