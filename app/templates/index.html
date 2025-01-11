@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Download TikTok videos in HD quality or MP3">
+    <meta name="theme-color" content="#00f2ea">
+    <title>TikTok Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fab fa-tiktok"></i> TikTok Downloader</h1>
+            <p class="subtitle">Download videos in HD quality or MP3 format</p>
+        </header>
+
+        <main>
+            <div class="download-box">
+                <div class="url-input">
+                    <input type="text" id="videoUrl" placeholder="Paste TikTok video URL here">
+                    <button id="checkButton" aria-label="Check video URL">
+                        <i class="fas fa-search"></i>
+                        <span>Check</span>
+                    </button>
+                </div>
+
+                <div class="preview-container">
+                    <div class="video-preview" id="videoPreview">
+                        <img id="thumbnailImg" alt="Video thumbnail">
+                    </div>
+                </div>
+
+                <div class="quality-options" id="qualityOptions" style="display: none;">
+                    <h3>Select Format</h3>
+                    <div class="options-container" id="optionsContainer">
+                        <!-- Quality options will be inserted here -->
+                    </div>
+                </div>
+
+                <button id="downloadButton" class="download-button" disabled>
+                    <span class="button-text">
+                        <i class="fas fa-download"></i>
+                        Download
+                    </span>
+                    <div class="loader" style="display: none;"></div>
+                </button>
+
+                <div class="status" id="status"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Made with <i class="fas fa-heart"></i></p>
+        </footer>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay" hidden>
+        <div class="spinner"></div>
+    </div>
+
+    <div class="error-container" id="errorContainer" hidden>
+        <p class="error-message"></p>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html> 

@@ -1,8 +1,17 @@
 import yt_dlp
 import os
 import re
+from typing import List, Dict, Optional
+import time
 
 class TikTokDownloader:
+    """
+    TikTok video downloader class.
+    
+    Attributes:
+        output_dir (str): Directory for downloaded files
+        config (dict): Configuration options
+    """
     def __init__(self):
         self.output_dir = "downloads"
         
@@ -10,7 +19,7 @@ class TikTokDownloader:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-    def get_video_info(self, url):
+    def get_video_info(self, url: str) -> List[Dict]:
         """Get available video formats"""
         try:
             ydl_opts = {
@@ -32,7 +41,8 @@ class TikTokDownloader:
                                 'resolution': f.get('resolution', 'N/A'),
                                 'format_id': f.get('format_id', 'N/A'),
                                 'filesize': filesize,
-                                'height': height
+                                'height': height,
+                                'is_audio': False
                             })
                 
                 # Sort by filesize first to get the best quality versions
@@ -52,12 +62,19 @@ class TikTokDownloader:
                             'resolution': 'HD' if fmt['height'] >= 720 else 'Standard',
                             'format_id': fmt['format_id'],
                             'filesize': f"{size_mb:.1f}MB",
-                            'quality': f'Quality ({fmt["height"]}p)'
+                            'quality': f'Quality ({fmt["height"]}p)',
+                            'is_audio': False
                         })
                         seen_heights.add(fmt['height'])
                 
-                # Sort final formats by filesize
-                final_formats.sort(key=lambda x: float(x['filesize'].replace('MB', '')), reverse=True)
+                # Add MP3 option
+                final_formats.append({
+                    'resolution': 'Audio Only',
+                    'format_id': 'bestaudio/best',
+                    'filesize': 'Variable',
+                    'quality': 'MP3 Audio',
+                    'is_audio': True
+                })
                 
                 return final_formats
                 
@@ -65,7 +82,8 @@ class TikTokDownloader:
             print(f"Error getting video info: {str(e)}")
             return []
 
-    def download_video(self, url, selected_format=None):
+    def download_video(self, url: str, selected_format: Optional[Dict] = None) -> bool:
+        """Download video with selected format"""
         try:
             # Get available formats
             formats = self.get_video_info(url)
@@ -75,19 +93,20 @@ class TikTokDownloader:
                 return False
             
             # Show available formats
-            print("\nAvailable video qualities:")
+            print("\nAvailable formats:")
             for i, fmt in enumerate(formats, 1):
-                print(f"{i}. {fmt['resolution']} ({fmt['quality']}) - Size: {fmt['filesize']}")
+                format_type = "MP3 Audio" if fmt.get('is_audio') else "Video"
+                print(f"{i}. {fmt['resolution']} ({fmt['quality']}) - Size: {fmt['filesize']} - Type: {format_type}")
             
             # If only one format available, use it automatically
             if len(formats) == 1:
                 selected_format = formats[0]
-                print(f"\nOnly one quality available. Using: {selected_format['resolution']} ({selected_format['quality']}) - Size: {selected_format['filesize']}")
+                print(f"\nOnly one format available. Using: {selected_format['resolution']} ({selected_format['quality']}) - Size: {selected_format['filesize']}")
             else:
                 # Let user choose format
                 while True:
                     try:
-                        choice = input(f"\nSelect quality (1-{len(formats)}, or Enter for best quality): ").strip()
+                        choice = input(f"\nSelect format (1-{len(formats)}, or Enter for best quality): ").strip()
                         if choice == "":
                             selected_format = formats[0]
                             print(f"Selected: {selected_format['resolution']} ({selected_format['quality']}) - Size: {selected_format['filesize']}")
@@ -102,30 +121,50 @@ class TikTokDownloader:
                     except ValueError:
                         print("Please enter a valid number.")
             
+            # Generate filename
+            is_audio = selected_format.get('is_audio', False)
+            ext = 'mp3' if is_audio else 'mp4'
+            filename = f"tiktok_{int(time.time())}.{ext}"
+            filepath = os.path.join(self.output_dir, filename)
+            
             # Configure download options
             ydl_opts = {
                 'format': selected_format['format_id'],
-                'outtmpl': os.path.join(self.output_dir, '%(id)s.%(ext)s'),
+                'outtmpl': filepath,
                 'quiet': False,
                 'no_warnings': True,
-                'merge_output_format': 'mp4',
             }
             
-            # Download the video
+            # Add audio-specific options
+            if is_audio:
+                ydl_opts.update({
+                    'extract_audio': True,
+                    'audio_format': 'mp3',
+                    'audio_quality': 0,  # Best quality
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '192',
+                    }]
+                })
+            else:
+                ydl_opts['merge_output_format'] = 'mp4'
+            
+            # Download the file
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
-            print(f"\nVideo successfully downloaded to {self.output_dir}")
+            print(f"\nFile successfully downloaded to {filepath}")
             return True
             
         except Exception as e:
-            print(f"Error downloading video: {str(e)}")
+            print(f"Error downloading: {str(e)}")
             return False
 
 def main():
     downloader = TikTokDownloader()
     
     while True:
-        url = input("\nEnter TikTok video URL (or 'q' to quit): ")
+        url = input("\nEnter TikTok URL (or 'q' to quit): ")
         
         if url.lower() == 'q':
             break
